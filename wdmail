@@ -7,7 +7,6 @@
 from __future__ import print_function
 
 import argparse
-import json
 import os
 import platform
 import sys
@@ -21,17 +20,16 @@ class Main(object):
 
     def __init__(self):
         args = self._parse_args()
-        print(args)
 
         self._cwd = os.path.dirname(os.path.abspath(sys.argv[0]))
-        self._api_file = self._cwd + '/wdmailer.api'
+        self._api_file = self._cwd + '/wdmail.api'
         self._api_key = None
 
         if os.path.isfile(self._api_file):
             f = open(self._api_file)
             self._api_key = f.readline().strip()
         if self._api_key is None:
-            print('API key not found in file %s' % self._api_file)
+            print('Sendgrid API key not found in file %s' % self._api_file)
             exit(1)
 
         if args.sender:
