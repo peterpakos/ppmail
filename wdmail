@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# A tool to send mail using WDMail library
+# A tool to send mail via Sendgrid
 #
 # Author: Peter Pakos <peter.pakos@wandisco.com>
 
