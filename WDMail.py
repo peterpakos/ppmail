@@ -11,8 +11,19 @@ import os
 
 
 class WDMail(object):
-    def __init__(self, api_key):
-        os.environ['SENDGRID_API_KEY'] = api_key
+    def __init__(self):
+        self._cwd = os.path.dirname(os.path.realpath(__file__))
+        self._name = os.path.splitext(os.path.basename(os.path.realpath(__file__)))[0]
+        self._api_file = '%s/%s.api' % (self._cwd, self._name)
+        self._api_key = None
+
+        if os.path.isfile(self._api_file):
+            f = open(self._api_file)
+            self._api_key = f.readline().strip()
+        if self._api_key is None:
+            print('Sendgrid API key not found in file %s' % self._api_file)
+            exit(1)
+        os.environ['SENDGRID_API_KEY'] = self._api_key
         self._sg = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
 
     def send(self, sender, recipients, subject, message, html=False, cc=None):
