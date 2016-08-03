@@ -16,12 +16,12 @@ import WDMail
 
 class Main(object):
     _version = '16.8.3'
-    _name = os.path.basename(sys.argv[0])
+    _cwd = os.path.dirname(os.path.realpath(__file__))
+    _name = os.path.basename(os.path.realpath(__file__))
 
     def __init__(self):
         args = self._parse_args()
 
-        self._cwd = os.path.dirname(os.path.abspath(sys.argv[0]))
         self._api_file = '%s/%s.api' % (self._cwd, self._name)
         self._api_key = None
 
