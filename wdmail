@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# A tool to send mail via sendgrid
+# A tool to send mail using WDMail library
 #
 # Author: Peter Pakos <peter.pakos@wandisco.com>
 
@@ -15,14 +15,14 @@ import WDMail
 
 
 class Main(object):
-    _version = '16.7.29'
+    _version = '16.8.3'
     _name = os.path.basename(sys.argv[0])
 
     def __init__(self):
         args = self._parse_args()
 
         self._cwd = os.path.dirname(os.path.abspath(sys.argv[0]))
-        self._api_file = self._cwd + '/wdmail.api'
+        self._api_file = '%s/%s.api' % (self._cwd, self._name)
         self._api_key = None
 
         if os.path.isfile(self._api_file):
@@ -42,12 +42,11 @@ class Main(object):
 
         email = WDMail.WDMail(api_key=self._api_key)
         status = email.send(sender, args.recipients, args.subject, message, args.html, args.cc)
-        exit()
         if status < 300:
             exit()
         else:
-            print('\nError: %s' % msg['errors'][0])
-            exit(status)
+            print('\nError')
+            exit(1)
 
     def _parse_args(self):
         parser = argparse.ArgumentParser(description='A tool to send mail via sendgrid')
