@@ -16,7 +16,7 @@ import WDMail
 
 class Main(object):
     def __init__(self):
-        self._version = '16.8.3'
+        self._version = '16.8.10'
         self._cwd = os.path.dirname(os.path.realpath(__file__))
         self._name = os.path.splitext(os.path.basename(os.path.realpath(__file__)))[0]
 
@@ -48,7 +48,7 @@ class Main(object):
         parser.add_argument('-f', '--from', dest='sender',
                             help='email From: field')
         parser.add_argument('-t', '--to', dest='recipients', nargs='+', required=True,
-                            help='email To: field')
+                            help='email To: field', default=[])
         parser.add_argument('-c', '--cc', dest='cc', nargs='+',
                             help='email Cc: field')
         parser.add_argument('-s', '--subject', dest='subject', required=True,
