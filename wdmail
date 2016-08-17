@@ -16,7 +16,7 @@ import WDMail
 
 class Main(object):
     def __init__(self):
-        self._version = '16.8.10'
+        self._version = '16.8.17'
         self._cwd = os.path.dirname(os.path.realpath(__file__))
         self._name = os.path.splitext(os.path.basename(os.path.realpath(__file__)))[0]
 
@@ -27,12 +27,14 @@ class Main(object):
         else:
             sender = os.getenv('USER') + '@' + platform.node()
         message = ''
+        non_empty = 0
         for line in sys.stdin:
+            message += line
             if line != '' and line != '\n':
-                message += line
+                non_empty += 1
 
-        if len(message) == 0:
-            exit()
+        if non_empty == 0:
+            exit(1)
 
         wdmail = WDMail.WDMail()
         status = wdmail.send(sender, args.recipients, args.subject, message, args.html, args.cc)
