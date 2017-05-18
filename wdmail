@@ -16,7 +16,7 @@ import WDMail
 
 class Main(object):
     def __init__(self):
-        self._version = '16.8.17'
+        self._version = '17.5.18'
         self._cwd = os.path.dirname(os.path.realpath(__file__))
         self._name = os.path.splitext(os.path.basename(os.path.realpath(__file__)))[0]
 
@@ -37,7 +37,15 @@ class Main(object):
             exit(1)
 
         wdmail = WDMail.WDMail()
-        status = wdmail.send(sender, args.recipients, args.subject, message, args.html, args.cc)
+        status = wdmail.send(
+            sender=sender,
+            recipients=args.recipients,
+            subject=args.subject,
+            message=message,
+            html=args.html,
+            cc=args.cc,
+            font_size=args.font_size
+        )
         if status < 300:
             exit()
         else:
@@ -57,6 +65,8 @@ class Main(object):
                             help='email Subject: field')
         parser.add_argument('-H', '--html', dest='html', action='store_true',
                             help='send HTML formatted email')
+        parser.add_argument('-F', '--font-size', dest='font_size', type=int, default=None,
+                            help='font size in px for HTML formatted email (use with -H)')
         args = parser.parse_args()
         return args
 

@@ -3,7 +3,6 @@ A tool to send mail via Sendgrid
 
 ## Configuration
 Sendgrid API key should be saved to WDMail.api file in the project's root directory.
-
 ~~~
 $ tree
 .
@@ -16,10 +15,10 @@ $ tree
 ~~~
 
 ## Usage - wdmail tool
-
 ~~~
-$ usage: wdmail [-h] [--version] [-f SENDER] -t RECIPIENTS [RECIPIENTS ...]
-              [-c CC [CC ...]] -s SUBJECT [-H]
+$ ./wdmail -h
+usage: wdmail [-h] [--version] [-f SENDER] -t RECIPIENTS [RECIPIENTS ...]
+              [-c CC [CC ...]] -s SUBJECT [-H] [-F FONT_SIZE]
 
 A tool to send mail via sendgrid
 
@@ -35,15 +34,24 @@ optional arguments:
   -s SUBJECT, --subject SUBJECT
                         email Subject: field
   -H, --html            send HTML formatted email
+  -F FONT_SIZE, --font-size FONT_SIZE
+                        font size in px for HTML formatted email (use with -H)
 ~~~
 
 ## Usage - WDMail Python module
-
 ~~~
 import WDMail
 
 wdmail = WDMail.WDMail()
-response = mail.send('from@domain.com', ['to@domain.com'], 'subject', 'message', html=True, cc=['cc@domain.com'])
+response = mail.send(
+    sender='from@domain.com',
+    recipients=['to@domain.com'],
+    subject='subject',
+    message='message',
+    html=True,
+    cc=['cc@domain.com'],
+    font_size=10
+)
 
 print(response)
 ~~~
