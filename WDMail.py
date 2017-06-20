@@ -1,8 +1,9 @@
-# WANdisco Mail module
-#
-# Version 17.5.18
-#
-# Author: Peter Pakos <peter.pakos@wandisco.com>
+# -*- coding: utf-8 -*-
+"""This module implements sending mail via Sendgrid.
+
+Configuration:
+    * Save Sendgrid API key to WDMail.api file in the project's root directory
+"""
 
 from __future__ import print_function
 import sendgrid
@@ -12,6 +13,8 @@ import cgi
 
 
 class WDMail(object):
+    VERSION = '1.0.0'
+
     def __init__(self):
         self._cwd = os.path.dirname(os.path.realpath(__file__))
         self._name = os.path.splitext(os.path.basename(os.path.realpath(__file__)))[0]

@@ -3,16 +3,6 @@ A tool to send mail via Sendgrid
 
 ## Configuration
 Sendgrid API key should be saved to WDMail.api file in the project's root directory.
-~~~
-$ tree
-.
-├── README.md    - README file
-├── WDMail.api   - File containing Sendgrid API key
-├── WDMail.py    - WDMail Python module
-└── wdmail       - Python script using WDMail class to send mail
-
-0 directories, 4 files
-~~~
 
 ## Usage - wdmail tool
 ~~~
