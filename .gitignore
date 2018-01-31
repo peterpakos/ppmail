@@ -1,3 +1,9 @@
-*.api
-.idea
+__pycache__
 *.pyc
+.idea
+*.cfg
+!setup.cfg
+*.egg-info
+build
+dist
+*.tox
