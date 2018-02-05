@@ -22,6 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 import os
 import logging
+from slackclient import SlackClient
+import sendgrid
+import cgi
 try:
     import configparser
 except ImportError:
@@ -33,6 +36,7 @@ class Mailer(object):
         self._log = logging.getLogger()
         self._log.debug('Preparing provider (%s)' % ('Slack' if slack else 'Sendgrid'))
         self._slack = slack
+        self._email_domain = None
         self._sendgrid_key = None
         self._slack_key = None
         self._config_dir = os.path.expanduser(os.environ.get('XDG_CONFIG_HOME', '~/.config'))
@@ -43,7 +47,8 @@ class Mailer(object):
         )
         self._load_config()
 
-        if (slack and not self._slack_key) or (not slack and not self._sendgrid_key):
+        if (slack and not self._email_domain) or (slack and not self._slack_key) \
+                or (not slack and not self._sendgrid_key):
             self._log.critical('Please edit config file %s' % self._config_path)
             exit(1)
 
@@ -57,6 +62,7 @@ class Mailer(object):
         if not os.path.isfile(self._config_path):
             self._log.debug('Config file not found at %s' % self._config_path)
             config.add_section('PPMAIL')
+            config.set('PPMAIL', 'EMAIL_DOMAIN', 'changeme')
             config.set('PPMAIL', 'SENDGRID_KEY', 'changeme')
             config.set('PPMAIL', 'SLACK_KEY', 'changeme')
 
@@ -76,6 +82,12 @@ class Mailer(object):
         if not config.has_section('PPMAIL'):
             self._log.debug('Config file has no PPMAIL section')
             return
+
+        if config.has_option('PPMAIL', 'EMAIL_DOMAIN'):
+            self._email_domain = config.get('PPMAIL', 'EMAIL_DOMAIN')
+            self._log.debug('EMAIL_DOMAIN = %s' % self._email_domain)
+        else:
+            self._log.debug('PPMAIL.EMAIL_DOMAIN not set')
 
         if config.has_option('PPMAIL', 'SENDGRID_KEY'):
             self._sendgrid_key = config.get('PPMAIL', 'SENDGRID_KEY')
@@ -97,8 +109,6 @@ class Mailer(object):
         return r
 
     def _send_slack(self, sender, recipients, subject, message, code=False, cc=None):
-        from slackclient import SlackClient
-
         if type(recipients) is not list:
             recipientsl = []
             if recipients is not None:
@@ -121,17 +131,20 @@ class Mailer(object):
         if code:
             message = "```%s```" % message
 
-        client = SlackClient(self._slack_key)
+        text = '%s%s' % (subject, message)
+
+        if code:
+            text = text.splitlines(True)
 
         failed = 0
 
-        text = '%s%s' % (subject, message)
-
+        client = SlackClient(self._slack_key)
         r = client.api_call('channels.list')
+
         channels = r.get('channels')
 
         for recipient in recipients:
-            if '@wandisco.com' in recipient:
+            if '@%s' % self._email_domain in recipient:
                 r = client.api_call('users.lookupByEmail', email=recipient)
                 if r.get('ok'):
                     recipient_id = r.get('user').get('id')
@@ -139,7 +152,7 @@ class Mailer(object):
                     failed += 1
                     continue
             elif str(recipient).startswith('@'):
-                r = client.api_call('users.lookupByEmail', email=recipient)
+                r = client.api_call('users.lookupByEmail', email=str(recipient).strip('@') + '@%s' % self._email_domain)
                 if r.get('ok'):
                     recipient_id = r.get('user').get('id')
                 else:
@@ -153,8 +166,6 @@ class Mailer(object):
                 continue
 
             if code:
-                text = text.splitlines(True)
-
                 to_print = []
                 length = 0
 
@@ -201,21 +212,19 @@ class Mailer(object):
         else:
             return True
 
-    @staticmethod
-    def _find_channel_id(channels, channel):
+    def _find_channel_id(self, channels, channel):
         for c in channels:
             if c.get('name') == channel:
                 channel_id = c.get('id')
+                self._log.debug('Channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
                 return channel_id
+        self._log.debug('Channel %s not found' % channel)
         return False
 
-    def _send_mail(self, sender, recipients, subject, message, html=False, cc=None, font_size=None):
-        import sendgrid
-        import cgi
-
+    def _send_mail(self, sender, recipients, subject, message, code=False, cc=None, font_size=None):
         os.environ['SENDGRID_API_KEY'] = self._sendgrid_key
         client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
-        if html:
+        if code:
             message = cgi.escape(message)
 
         if font_size:
@@ -237,7 +246,7 @@ class Mailer(object):
 
         content = ''
         content_type = 'text/plain'
-        if html:
+        if code:
             content_type = 'text/html'
             content += '''
 <html>
@@ -246,7 +255,7 @@ class Mailer(object):
 ''' % style
         content += message
 
-        if html:
+        if code:
             content += '''
 </pre>
 </body>

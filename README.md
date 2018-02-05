@@ -15,8 +15,7 @@ system's PATH.
 ### pip install
 The tool is available in PyPI and can be installed using pip:
 ```
-$ pip install --upgrade pip setuptools wheel
-$ pip install ppmail
+$ pip install --user ppmail
 $ ppmail --help
 ```
 
@@ -29,9 +28,9 @@ created and populated with sample config upon the next run.
 ## Usage - Help
 ```
 $ ppmail --help
-usage: ppmail [--version] [--help] [--debug] [-S] [-f SENDER] -t RECIPIENTS
-              [RECIPIENTS ...] [-c CC [CC ...]] [-s SUBJECT] [-H]
-              [-F FONT_SIZE]
+usage: __main__.py [--version] [--help] [--debug] [--verbose] [-S] [-f SENDER]
+                   -t RECIPIENTS [RECIPIENTS ...] [-c CC [CC ...]]
+                   [-s SUBJECT] [-H] [-F FONT_SIZE]
 
 Tool to send messages via Sendgrid/Slack
 
@@ -39,6 +38,7 @@ optional arguments:
   --version             show program's version number and exit
   --help                show this help message and exit
   --debug               debugging mode
+  --verbose             verbose logging mode
   -S, --slack           Use Slack instead of Sendgrid
   -f SENDER, --from SENDER
                         sender

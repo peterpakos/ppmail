@@ -27,14 +27,14 @@ import argparse
 import platform
 from pplogger import get_logger
 
-from ppmail.mailer import Mailer
+from .mailer import Mailer
 from . import VERSION
 
 
 class Main(object):
     def __init__(self):
         self._args = self._parse_args()
-        self._log = get_logger(debug=self._args.debug)
+        self._log = get_logger(debug=self._args.debug, verbose=self._args.verbose)
         self._log.debug(self._args)
         self._log.debug('Initialising...')
 
@@ -44,6 +44,7 @@ class Main(object):
         parser.add_argument('--version', action='version', version='%s %s' % ('ppmail', VERSION))
         parser.add_argument('--help', action='help', help='show this help message and exit')
         parser.add_argument('--debug', action='store_true', dest='debug', help='debugging mode')
+        parser.add_argument('--verbose', action='store_true', dest='verbose', help='verbose logging mode')
         parser.add_argument('-S', '--slack', action='store_true', help='Use Slack instead of Sendgrid')
         parser.add_argument('-f', '--from', dest='sender',
                             help='sender')
