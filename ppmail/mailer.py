@@ -25,6 +25,8 @@ import logging
 from slackclient import SlackClient
 import sendgrid
 import cgi
+from python_http_client import exceptions
+
 try:
     import configparser
 except ImportError:
@@ -51,6 +53,12 @@ class Mailer(object):
                 or (not slack and not self._sendgrid_key):
             self._log.critical('Please edit config file %s' % self._config_path)
             exit(1)
+
+        if slack:
+            self._slack_client = SlackClient(self._slack_key)
+        else:
+            os.environ['SENDGRID_API_KEY'] = self._sendgrid_key
+            self._sendgrid_client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
 
     def _load_config(self):
         config = configparser.ConfigParser()
@@ -138,28 +146,26 @@ class Mailer(object):
 
         failed = 0
 
-        client = SlackClient(self._slack_key)
-        r = client.api_call('channels.list')
-
-        channels = r.get('channels')
-
         for recipient in recipients:
             if '@%s' % self._email_domain in recipient:
-                r = client.api_call('users.lookupByEmail', email=recipient)
+                r = self._slack_client.api_call('users.lookupByEmail', email=recipient)
                 if r.get('ok'):
                     recipient_id = r.get('user').get('id')
                 else:
                     failed += 1
                     continue
             elif str(recipient).startswith('@'):
-                r = client.api_call('users.lookupByEmail', email=str(recipient).strip('@') + '@%s' % self._email_domain)
+                r = self._slack_client.api_call('users.lookupByEmail',
+                                                email=str(recipient).strip('@') + '@%s' % self._email_domain)
                 if r.get('ok'):
                     recipient_id = r.get('user').get('id')
                 else:
                     failed += 1
                     continue
             else:
-                recipient_id = self._find_channel_id(channels, recipient)
+                if str(recipient).startswith('#'):
+                    recipient = str(recipient).lstrip('#')
+                recipient_id = self._find_channel_id(recipient)
 
             if not recipient_id:
                 failed += 1
@@ -179,7 +185,7 @@ class Mailer(object):
                             to_print = '```' + to_print
                         if not str(to_print).endswith('```'):
                             to_print = to_print + '```'
-                        r = client.api_call(
+                        r = self._slack_client.api_call(
                             'chat.postMessage',
                             username=sender,
                             channel=recipient_id,
@@ -195,7 +201,7 @@ class Mailer(object):
                         length = 0
 
             else:
-                r = client.api_call(
+                r = self._slack_client.api_call(
                     'chat.postMessage',
                     username=sender,
                     channel=recipient_id,
@@ -212,18 +218,27 @@ class Mailer(object):
         else:
             return True
 
-    def _find_channel_id(self, channels, channel):
+    def _find_channel_id(self, channel):
+        r = self._slack_client.api_call('channels.list')
+        channels = r.get('channels')
         for c in channels:
             if c.get('name') == channel:
                 channel_id = c.get('id')
-                self._log.debug('Channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
+                self._log.debug('Public channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
                 return channel_id
+
+        r = self._slack_client.api_call('groups.list')
+        private_channels = r.get('groups')
+        for c in private_channels:
+            if c.get('name') == channel:
+                channel_id = c.get('id')
+                self._log.debug('Private channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
+                return channel_id
+
         self._log.debug('Channel %s not found' % channel)
         return False
 
     def _send_mail(self, sender, recipients, subject, message, code=False, cc=None, font_size=None):
-        os.environ['SENDGRID_API_KEY'] = self._sendgrid_key
-        client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
         if code:
             message = cgi.escape(message)
 
@@ -288,9 +303,14 @@ class Mailer(object):
             for c in cc:
                 cc_list.append({'email': c})
             data['personalizations'][0]['cc'] = cc_list
-        response = client.client.mail.send.post(request_body=data)
 
-        if response.status_code < 300:
-            return True
+        try:
+            response = self._sendgrid_client.client.mail.send.post(request_body=data)
+        except exceptions.BadRequestsError as e:
+            self._log.critical(e.body)
+            exit(1)
         else:
-            return False
+            if response.status_code < 300:
+                return True
+            else:
+                return False
