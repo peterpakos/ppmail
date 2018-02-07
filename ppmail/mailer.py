@@ -147,21 +147,17 @@ class Mailer(object):
         failed = 0
 
         for recipient in recipients:
+            recipient_id = None
+
             if '@%s' % self._email_domain in recipient:
                 r = self._slack_client.api_call('users.lookupByEmail', email=recipient)
                 if r.get('ok'):
                     recipient_id = r.get('user').get('id')
-                else:
-                    failed += 1
-                    continue
             elif str(recipient).startswith('@'):
                 r = self._slack_client.api_call('users.lookupByEmail',
                                                 email=str(recipient).strip('@') + '@%s' % self._email_domain)
                 if r.get('ok'):
                     recipient_id = r.get('user').get('id')
-                else:
-                    failed += 1
-                    continue
             else:
                 if str(recipient).startswith('#'):
                     recipient = str(recipient).lstrip('#')
@@ -169,6 +165,7 @@ class Mailer(object):
 
             if not recipient_id:
                 failed += 1
+                self._log.error('Recipient %s not found' % recipient)
                 continue
 
             if code:
@@ -235,7 +232,6 @@ class Mailer(object):
                 self._log.debug('Private channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
                 return channel_id
 
-        self._log.debug('Channel %s not found' % channel)
         return False
 
     def _send_mail(self, sender, recipients, subject, message, code=False, cc=None, font_size=None):
