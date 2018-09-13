@@ -82,8 +82,6 @@ class Mailer(object):
             if c not in recipients:
                 recipients.append(c)
 
-        recipients = ['%s@%s' % (e, self._email_domain) if '@' not in e else e for e in recipients]
-
         if subject:
             subject = '*%s*\n' % subject.strip()
 
