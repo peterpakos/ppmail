@@ -22,5 +22,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from ppmail.mailer import Mailer
-
-VERSION = '2.0.6'
+from .__version__ import __version__

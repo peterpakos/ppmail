@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from __future__ import print_function
+from ppconfig import Config
+
 import os
 import logging
 from slackclient import SlackClient
@@ -27,87 +29,34 @@ import sendgrid
 import cgi
 from python_http_client import exceptions
 
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
-
 
 class Mailer(object):
     def __init__(self, slack=False):
-        self._log = logging.getLogger()
+        self._app_name = os.path.splitext(__name__)[0].lower()
+        self._log = logging.getLogger('ppmail')
+
+        try:
+            self._config = Config(self._app_name)
+        except IOError as e:
+            self._log.critical(e)
+            exit(1)
+
+        try:
+            self._email_domain = self._config.get('email_domain')
+            self._sendgrid_key = self._config.get('sendgrid_key')
+            self._slack_key = self._config.get('slack_key')
+        except NameError as e:
+            self._log.critical(e)
+            exit(1)
+
         self._log.debug('Preparing provider (%s)' % ('Slack' if slack else 'Sendgrid'))
         self._slack = slack
-        self._email_domain = None
-        self._sendgrid_key = None
-        self._slack_key = None
-        self._config_dir = os.path.expanduser(os.environ.get('XDG_CONFIG_HOME', '~/.config'))
-        self._config_file = os.path.splitext(__name__)[0].lower()
-        self._config_path = os.path.join(
-            self._config_dir,
-            self._config_file
-        )
-        self._load_config()
-
-        if (slack and not self._email_domain) or (slack and not self._slack_key) \
-                or (not slack and not self._sendgrid_key):
-            self._log.critical('Please edit config file %s' % self._config_path)
-            exit(1)
 
         if slack:
             self._slack_client = SlackClient(self._slack_key)
         else:
             os.environ['SENDGRID_API_KEY'] = self._sendgrid_key
             self._sendgrid_client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
-
-    def _load_config(self):
-        config = configparser.ConfigParser()
-
-        if not os.path.exists(self._config_dir):
-            self._log.debug('Config directory %s does not exist, creating' % self._config_dir)
-            os.makedirs(self._config_dir)
-
-        if not os.path.isfile(self._config_path):
-            self._log.debug('Config file not found at %s' % self._config_path)
-            config.add_section('PPMAIL')
-            config.set('PPMAIL', 'EMAIL_DOMAIN', 'changeme')
-            config.set('PPMAIL', 'SENDGRID_KEY', 'changeme')
-            config.set('PPMAIL', 'SLACK_KEY', 'changeme')
-
-            with open(self._config_path, 'w') as cfgfile:
-                config.write(cfgfile)
-            self._log.info('Initial config saved to %s - PLEASE EDIT IT!' % self._config_path)
-            return
-
-        self._log.debug('Loading configuration file %s' % self._config_path)
-
-        if 'changeme' in open(self._config_path).read():
-            self._log.debug('Initial config found in %s - PLEASE EDIT IT!' % self._config_path)
-            return
-
-        config.read(self._config_path)
-
-        if not config.has_section('PPMAIL'):
-            self._log.debug('Config file has no PPMAIL section')
-            return
-
-        if config.has_option('PPMAIL', 'EMAIL_DOMAIN'):
-            self._email_domain = config.get('PPMAIL', 'EMAIL_DOMAIN')
-            self._log.debug('EMAIL_DOMAIN = %s' % self._email_domain)
-        else:
-            self._log.debug('PPMAIL.EMAIL_DOMAIN not set')
-
-        if config.has_option('PPMAIL', 'SENDGRID_KEY'):
-            self._sendgrid_key = config.get('PPMAIL', 'SENDGRID_KEY')
-            self._log.debug('SENDGRID_KEY = ********')
-        else:
-            self._log.debug('PPMAIL.SENDGRID_KEY not set')
-
-        if config.has_option('PPMAIL', 'SLACK_KEY'):
-            self._slack_key = config.get('PPMAIL', 'SLACK_KEY')
-            self._log.debug('SLACK_KEY = ********')
-        else:
-            self._log.debug('PPMAIL.SLACK_KEY not set')
 
     def send(self, *args, **kwargs):
         if self._slack:
@@ -132,6 +81,8 @@ class Mailer(object):
         for c in cc:
             if c not in recipients:
                 recipients.append(c)
+
+        recipients = ['%s@%s' % (e, self._email_domain) if '@' not in e else e for e in recipients]
 
         if subject:
             subject = '*%s*\n' % subject.strip()
@@ -254,6 +205,9 @@ class Mailer(object):
             if cc is not None:
                 ccl.append(cc)
             cc = ccl
+
+        recipients = ['%s@%s' % (e, self._email_domain) if '@' not in e else e for e in recipients]
+        cc = ['%s@%s' % (e, self._email_domain) if '@' not in e else e for e in cc]
 
         content = ''
         content_type = 'text/plain'

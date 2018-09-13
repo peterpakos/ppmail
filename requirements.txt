@@ -1,4 +1,5 @@
 pplogger
+ppconfig
 sendgrid
 slackclient
 python_http_client

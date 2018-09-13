@@ -21,27 +21,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from __future__ import absolute_import, print_function
+from . import __version__
+from .mailer import Mailer
+
 import os
 import sys
 import argparse
 import platform
 from pplogger import get_logger
 
-from .mailer import Mailer
-from . import VERSION
-
 
 class Main(object):
     def __init__(self):
         self._args = self._parse_args()
-        self._log = get_logger(debug=self._args.debug, verbose=self._args.verbose)
+        self._log = get_logger(name='ppmail', debug=self._args.debug, verbose=self._args.verbose)
         self._log.debug(self._args)
         self._log.debug('Initialising...')
 
     @staticmethod
     def _parse_args():
         parser = argparse.ArgumentParser(description='Tool to send messages via Sendgrid/Slack', add_help=False)
-        parser.add_argument('--version', action='version', version='%s %s' % ('ppmail', VERSION))
+        parser.add_argument('--version', action='version', version='%s %s' % ('ppmail', __version__))
         parser.add_argument('--help', action='help', help='show this help message and exit')
         parser.add_argument('--debug', action='store_true', dest='debug', help='debugging mode')
         parser.add_argument('--verbose', action='store_true', dest='verbose', help='verbose logging mode')
@@ -55,14 +55,13 @@ class Main(object):
         parser.add_argument('-s', '--subject', dest='subject', default='', help='subject')
         parser.add_argument('-H', '--code', dest='code', action='store_true',
                             help='send HTML formatted email/code block')
+        # noinspection PyTypeChecker
         parser.add_argument('-F', '--font-size', dest='font_size', type=int, default=None,
                             help='font size in px for HTML formatted email (use with -H)')
         args = parser.parse_args()
         return args
 
     def run(self):
-        self._log.debug('Starting...')
-
         sender = self._args.sender if self._args.sender else os.getenv('USER') + '@' + platform.node()
         self._log.debug('Sender: %s' % sender)
 
