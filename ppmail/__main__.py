@@ -34,7 +34,7 @@ from pplogger import get_logger
 class Main(object):
     def __init__(self):
         self._args = self._parse_args()
-        self._log = get_logger(name='ppmail', debug=self._args.debug, verbose=self._args.verbose)
+        self._log = get_logger(name='ppmail.mailer', debug=self._args.debug, verbose=self._args.verbose)
         self._log.debug(self._args)
         self._log.debug('Initialising...')
 

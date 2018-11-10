@@ -33,7 +33,7 @@ from python_http_client import exceptions
 class Mailer(object):
     def __init__(self, slack=False):
         self._app_name = os.path.splitext(__name__)[0].lower()
-        self._log = logging.getLogger('ppmail')
+        self._log = logging.getLogger(__name__)
 
         try:
             self._config = Config(self._app_name)
@@ -125,12 +125,14 @@ class Mailer(object):
                     to_print += text[i]
                     length += len(line)
 
-                    if i == (len(text) - 1) or (length + len(text[i+1])) > 4030:
+                    if i == (len(text) - 1) or (length + len(text[i+1])) > 3800:
                         to_print = ''.join(to_print)
-                        if not str(to_print).startswith('```') and subject and subject not in to_print:
+
+                        if not str(to_print).startswith('```') and not (subject and subject in to_print):
                             to_print = '```' + to_print
                         if not str(to_print).endswith('```'):
                             to_print = to_print + '```'
+
                         r = self._slack_client.api_call(
                             'chat.postMessage',
                             username=sender,
@@ -145,7 +147,6 @@ class Mailer(object):
 
                         to_print = []
                         length = 0
-
             else:
                 r = self._slack_client.api_call(
                     'chat.postMessage',
