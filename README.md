@@ -28,9 +28,9 @@ created and populated with sample config upon the next run.
 ## Usage - Help
 ```
 $ ppmail --help
-usage: __main__.py [--version] [--help] [--debug] [--verbose] [-S] [-f SENDER]
-                   -t RECIPIENTS [RECIPIENTS ...] [-c CC [CC ...]]
-                   [-s SUBJECT] [-H] [-F FONT_SIZE]
+usage: ppmail [--version] [--help] [--debug] [--verbose] [-S] [-f SENDER] -t
+              RECIPIENTS [RECIPIENTS ...] [-c CC [CC ...]] [-s SUBJECT] [-H]
+              [-F FONT_SIZE]
 
 Tool to send messages via Sendgrid/Slack
 
