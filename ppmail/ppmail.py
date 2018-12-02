@@ -31,32 +31,29 @@ from pplogger import get_logger
 
 __app_name__ = os.path.splitext(__name__)[0].lower()
 
+parser = argparse.ArgumentParser(description='Tool to send messages via Sendgrid/Slack', add_help=False)
+parser.add_argument('--version', action='version', version='%s %s' % (__app_name__, __version__))
+parser.add_argument('--help', action='help', help='show this help message and exit')
+parser.add_argument('--debug', action='store_true', dest='debug', help='debugging mode')
+parser.add_argument('-S', '--slack', action='store_true', help='Use Slack instead of Sendgrid')
+parser.add_argument('-f', '--from', dest='sender',
+                    help='sender')
+parser.add_argument('-t', '--to', dest='recipients', nargs='+', required=True,
+                    help='recipient', default=[])
+parser.add_argument('-c', '--cc', dest='cc', nargs='+',
+                    help='carbon copy recipient')
+parser.add_argument('-s', '--subject', dest='subject', default='', help='subject')
+parser.add_argument('-H', '--code', dest='code', action='store_true',
+                    help='send HTML formatted email/code block')
+# noinspection PyTypeChecker
+parser.add_argument('-F', '--font-size', dest='font_size', type=int, default=None,
+                    help='font size in px for HTML formatted email (use with -H)')
+args = parser.parse_args()
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Tool to send messages via Sendgrid/Slack', add_help=False)
-    parser.add_argument('--version', action='version', version='%s %s' % (__app_name__, __version__))
-    parser.add_argument('--help', action='help', help='show this help message and exit')
-    parser.add_argument('--debug', action='store_true', dest='debug', help='debugging mode')
-    parser.add_argument('-S', '--slack', action='store_true', help='Use Slack instead of Sendgrid')
-    parser.add_argument('-f', '--from', dest='sender',
-                        help='sender')
-    parser.add_argument('-t', '--to', dest='recipients', nargs='+', required=True,
-                        help='recipient', default=[])
-    parser.add_argument('-c', '--cc', dest='cc', nargs='+',
-                        help='carbon copy recipient')
-    parser.add_argument('-s', '--subject', dest='subject', default='', help='subject')
-    parser.add_argument('-H', '--code', dest='code', action='store_true',
-                        help='send HTML formatted email/code block')
-    # noinspection PyTypeChecker
-    parser.add_argument('-F', '--font-size', dest='font_size', type=int, default=None,
-                        help='font size in px for HTML formatted email (use with -H)')
-    args = parser.parse_args()
-    return args
+log = get_logger(name='ppmail.mailer', debug=args.debug)
 
 
 def main():
-    args = parse_args()
-    log = get_logger(name='ppmail.mailer', debug=args.debug)
     log.debug(args)
 
     sender = args.sender if args.sender else os.getenv('USER') + '@' + platform.node()
