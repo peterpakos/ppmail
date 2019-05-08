@@ -29,27 +29,26 @@ import sendgrid
 import cgi
 from python_http_client import exceptions
 
+log = logging.getLogger(__name__)
+
 
 class Mailer(object):
     def __init__(self, slack=False):
         self._app_name = os.path.splitext(__name__)[0].lower()
-        self._log = logging.getLogger(__name__)
 
         try:
             self._config = Config(self._app_name)
-        except IOError as e:
-            self._log.critical(e)
-            exit(1)
+        except Exception:
+            raise
 
         try:
             self._email_domain = self._config.get('email_domain')
             self._sendgrid_key = self._config.get('sendgrid_key')
             self._slack_key = self._config.get('slack_key')
-        except NameError as e:
-            self._log.critical(e)
-            exit(1)
+        except Exception:
+            raise
 
-        self._log.debug('Preparing provider (%s)' % ('Slack' if slack else 'Sendgrid'))
+        log.debug('Preparing provider (%s)' % ('Slack' if slack else 'Sendgrid'))
         self._slack = slack
 
         if slack:
@@ -65,16 +64,16 @@ class Mailer(object):
             r = self._send_mail(*args, **kwargs)
         return r
 
-    def _send_slack(self, sender, recipients, subject, message, code=False, cc=None):
+    def _send_slack(self, sender, recipients, subject, message, code=False, cc=None, *args, **kwargs):
         if type(recipients) is not list:
             recipientsl = []
-            if recipients is not None:
+            if recipients:
                 recipientsl.append(recipients)
             recipients = recipientsl
 
         if type(cc) is not list:
             ccl = []
-            if cc is not None:
+            if cc:
                 ccl.append(cc)
             cc = recipients + ccl
 
@@ -114,7 +113,7 @@ class Mailer(object):
 
             if not recipient_id:
                 failed += 1
-                self._log.error('Recipient %s not found' % recipient)
+                log.error('Slack user %s not found' % recipient)
                 continue
 
             if code:
@@ -160,10 +159,7 @@ class Mailer(object):
                 if not r.get('ok'):
                     failed += 1
 
-        if failed:
-            return False
-        else:
-            return True
+        return False if failed else True
 
     def _find_channel_id(self, channel):
         r = self._slack_client.api_call('channels.list')
@@ -171,7 +167,7 @@ class Mailer(object):
         for c in channels:
             if c.get('name') == channel:
                 channel_id = c.get('id')
-                self._log.debug('Public channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
+                log.debug('Public channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
                 return channel_id
 
         r = self._slack_client.api_call('groups.list')
@@ -179,12 +175,12 @@ class Mailer(object):
         for c in private_channels:
             if c.get('name') == channel:
                 channel_id = c.get('id')
-                self._log.debug('Private channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
+                log.debug('Private channel name: %s, ID: %s' % (c.get('name'), c.get('id')))
                 return channel_id
 
         return False
 
-    def _send_mail(self, sender, recipients, subject, message, code=False, cc=None, font_size=None):
+    def _send_mail(self, sender, recipients, subject, message, code=False, cc=None, font_size=None, *args, **kwargs):
         if code:
             message = cgi.escape(message)
 
@@ -256,10 +252,7 @@ class Mailer(object):
         try:
             response = self._sendgrid_client.client.mail.send.post(request_body=data)
         except exceptions.BadRequestsError as e:
-            self._log.critical(e.body)
-            exit(1)
+            log.critical(e.body)
+            raise
         else:
-            if response.status_code < 300:
-                return True
-            else:
-                return False
+            return True if response.status_code < 300 else False

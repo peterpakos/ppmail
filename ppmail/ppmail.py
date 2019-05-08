@@ -35,13 +35,12 @@ parser = argparse.ArgumentParser(description='Tool to send messages via Sendgrid
 parser.add_argument('--version', action='version', version='%s %s' % (__app_name__, __version__))
 parser.add_argument('--help', action='help', help='show this help message and exit')
 parser.add_argument('--debug', action='store_true', dest='debug', help='debugging mode')
+parser.add_argument('--verbose', action='store_true', dest='verbose', help='verbose debugging mode')
 parser.add_argument('-S', '--slack', action='store_true', help='Use Slack instead of Sendgrid')
 parser.add_argument('-f', '--from', dest='sender',
                     help='sender')
-parser.add_argument('-t', '--to', dest='recipients', nargs='+', required=True,
-                    help='recipient', default=[])
-parser.add_argument('-c', '--cc', dest='cc', nargs='+',
-                    help='carbon copy recipient')
+parser.add_argument('-t', '--to', dest='recipients', nargs='+', required=True, help='recipient', default=[])
+parser.add_argument('-c', '--cc', dest='cc', nargs='+', help='carbon copy recipient')
 parser.add_argument('-s', '--subject', dest='subject', default='', help='subject')
 parser.add_argument('-H', '--code', dest='code', action='store_true',
                     help='send HTML formatted email/code block')
@@ -50,7 +49,7 @@ parser.add_argument('-F', '--font-size', dest='font_size', type=int, default=Non
                     help='font size in px for HTML formatted email (use with -H)')
 args = parser.parse_args()
 
-log = get_logger(name='ppmail.mailer', debug=args.debug)
+log = get_logger(name='ppmail.mailer', debug=args.debug, verbose=args.verbose)
 
 
 def main():
@@ -76,26 +75,21 @@ def main():
         log.critical('Sendgrid requires subject field to be set (-s)')
         exit(1)
 
-    mailer = Mailer(slack=args.slack)
-    if args.slack:
-        status = mailer.send(
-            sender=sender,
-            recipients=args.recipients,
-            subject=args.subject,
-            message=message,
-            code=args.code,
-            cc=args.cc
-        )
-    else:
-        status = mailer.send(
-            sender=sender,
-            recipients=args.recipients,
-            subject=args.subject,
-            message=message,
-            code=args.code,
-            cc=args.cc,
-            font_size=args.font_size
-        )
+    try:
+        mailer = Mailer(slack=args.slack)
+    except Exception as e:
+        log.critical(e)
+        exit(1)
+
+    status = mailer.send(
+        sender=sender,
+        recipients=args.recipients,
+        subject=args.subject,
+        message=message,
+        code=args.code,
+        cc=args.cc,
+        font_size=args.font_size
+    )
 
     if status:
         exit()
