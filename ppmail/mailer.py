@@ -55,7 +55,7 @@ class Mailer(object):
             self._slack_client = SlackClient(self._slack_key)
         else:
             os.environ['SENDGRID_API_KEY'] = self._sendgrid_key
-            self._sendgrid_client = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
+            self._sendgrid_client = sendgrid.SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
 
     def send(self, *args, **kwargs):
         if self._slack:
